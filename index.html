@@ -170,6 +170,8 @@
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             width: clamp(280px, 80vw, 400px);
+            max-height: 80vh; /* Limit height */
+            overflow-y: auto; /* Enable scroll if needed */
         }
         .menu-box .button, .modal-box .button {
             display: block;
@@ -503,6 +505,7 @@
                 
                 this.perfectCombo = 0;
                 this.initialBlockSize = { width: 10, depth: 10 };
+                this.blocksSinceColorChange = 0;
                 
                 this.bgColors = {
                     top: new THREE.Color(0x1a237e),
@@ -695,6 +698,7 @@
                 });
                 this.blocks = [];
                 this.perfectCombo = 0;
+                this.blocksSinceColorChange = 0;
                 this.addBlock(); 
                 this.stage.setCamera(2, 0);
                 this.ui.score.innerText = '0';
@@ -709,9 +713,14 @@
 
                 if (newBlocks.placed) {
                     this.placedBlocks.add(newBlocks.placed);
+                    this.blocksSinceColorChange++;
                     
-                    this.bgColors.targetBottom.copy(this.bgColors.targetTop);
-                    this.bgColors.targetTop.copy(this.getPastelColor(currentBlock.color));
+                    if(this.blocksSinceColorChange >= 5) {
+                        this.blocksSinceColorChange = 0;
+                        this.bgColors.targetBottom.copy(this.bgColors.targetTop);
+                        this.bgColors.targetTop.copy(this.getPastelColor(currentBlock.color));
+                    }
+
 
                     if (newBlocks.bonus) {
                         this.perfectCombo++;
@@ -830,9 +839,11 @@
             
             animateStars() {
                 const cameraY = this.stage.camera.position.y;
+                // Move the entire starfield with the camera
                 this.starsGroup.position.y = cameraY;
                 this.starsGroup.rotation.y += 0.0002;
 
+                // Wrap stars to create an infinite field
                 this.starsGroup.children.forEach(star => {
                     if (star.position.y + cameraY < cameraY - 100) {
                         star.position.y += 200;
@@ -846,13 +857,14 @@
             getPastelColor(color) {
                 const tempColor = color.clone();
                 const white = new THREE.Color(0xffffff);
-                tempColor.lerp(white, 0.6); // Mix with 60% white
+                tempColor.lerp(white, 0.75); // Mix with 75% white for a milkier look
                 return tempColor;
             }
 
             updateBackground() {
-                this.bgColors.top.lerp(this.bgColors.targetTop, 0.02);
-                this.bgColors.bottom.lerp(this.bgColors.targetBottom, 0.02);
+                // Slower lerp for a much smoother transition
+                this.bgColors.top.lerp(this.bgColors.targetTop, 0.005);
+                this.bgColors.bottom.lerp(this.bgColors.targetBottom, 0.005);
                 
                 const topHex = '#' + this.bgColors.top.getHexString();
                 const bottomHex = '#' + this.bgColors.bottom.getHexString();
@@ -896,4 +908,3 @@
     </script>
 </body>
 </html>
-
