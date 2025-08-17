@@ -388,8 +388,8 @@
 
                 this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
                 
-                this.speed = -0.1 - this.index * 0.005;
-                if (this.speed < -4) this.speed = -4;
+                this.speed = -5 - this.index * 0.1;
+                if (this.speed < -25) this.speed = -25;
                 this.direction = this.speed;
 
                 const geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
@@ -404,7 +404,7 @@
             }
 
             reverseDirection = () => {
-                this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
+                this.direction *= -1;
             }
 
             place() {
@@ -460,11 +460,11 @@
                 return blocksToReturn;
             }
 
-            tick() {
+            tick(delta) {
                 if (this.state === this.STATES.ACTIVE) {
                     const value = this.position[this.workingPlane];
                     if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
-                    this.position[this.workingPlane] += this.direction;
+                    this.position[this.workingPlane] += this.direction * delta;
                     this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
                 }
             }
@@ -475,6 +475,7 @@
                 this.STATES = { MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', ENDED: 'ended', RESETTING: 'resetting' };
                 
                 this.stage = new Stage();
+                this.clock = new THREE.Clock(); // For delta time
                 this.ui = {
                     body: document.body,
                     mainMenu: document.getElementById('main-menu'),
@@ -766,9 +767,9 @@
                     };
                     const plane = newBlocks.plane;
                     if (newBlocks.chopped.position[plane] > newBlocks.placed.position[plane]) {
-                        positionParams[plane] = `+=${20 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `+=${10 * Math.abs(newBlocks.direction)}`;
                     } else {
-                        positionParams[plane] = `-=${20 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `-=${10 * Math.abs(newBlocks.direction)}`;
                     }
                     TweenLite.to(newBlocks.chopped.position, 1, positionParams);
                 }
@@ -850,10 +851,10 @@
                 }
             }
             
-            animateStars() {
+            animateStars(delta) {
                 const cameraY = this.stage.camera.position.y;
                 this.starsGroup.position.y = cameraY;
-                this.starsGroup.rotation.y += 0.0002;
+                this.starsGroup.rotation.y += 0.03 * delta; // Framerate-independent rotation
 
                 this.starsGroup.children.forEach(star => {
                     if (star.position.y + cameraY < cameraY - 100) {
@@ -900,12 +901,13 @@
             }
 
             tick = () => {
-                this.animateStars();
+                const delta = this.clock.getDelta();
+                this.animateStars(delta);
 
                 if (this.state === this.STATES.PLAYING || this.state === this.STATES.ENDED) {
                     const topBlock = this.blocks[this.blocks.length - 1];
                     if (topBlock && topBlock.state === topBlock.STATES.ACTIVE) {
-                        topBlock.tick();
+                        topBlock.tick(delta);
                     }
                 }
                 this.updateBackground();
