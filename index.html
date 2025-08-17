@@ -171,18 +171,12 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
             width: clamp(280px, 80vw, 400px);
             max-height: 80vh; /* Limit height */
-            display: flex;
-            flex-direction: column;
-        }
-        .modal-box-content {
             overflow-y: auto; /* Enable scroll if needed */
-            padding-right: 10px; /* space for scrollbar */
         }
         .menu-box .button, .modal-box .button {
             display: block;
             margin: 15px auto 0 auto;
             width: 100%;
-            flex-shrink: 0;
         }
         .modal-box h2, .menu-box h2 {
             font-family: 'Oswald', sans-serif;
@@ -248,20 +242,18 @@
         
         <div id="rules-modal" class="ui-layer modal-background hidden">
             <div class="modal-box">
-                <div class="modal-box-content">
-                    <h2>Правила Игры</h2>
-                    <p>Ваша задача — построить как можно более высокую башню, устанавливая блоки друг на друга.</p>
-                    <ul>
-                        <li>Нажимайте на экран (или пробел), чтобы остановить движущийся блок.</li>
-                        <li>Часть блока, вышедшая за пределы нижнего, отколется.</li>
-                        <li>Башня станет уже, и строить будет сложнее!</li>
-                    </ul>
-                    <p><strong>⭐ Идеальное Комбо:</strong></p>
-                    <ul>
-                        <li>Установите <strong>6 блоков идеально</strong> подряд, чтобы активировать комбо.</li>
-                        <li>Каждое следующее идеальное попадание будет <strong>увеличивать размер</strong> платформы, возвращая ее к первоначальной ширине!</li>
-                    </ul>
-                </div>
+                <h2>Правила Игры</h2>
+                <p>Ваша задача — построить как можно более высокую башню, устанавливая блоки друг на друга.</p>
+                <ul>
+                    <li>Нажимайте на экран (или пробел), чтобы остановить движущийся блок.</li>
+                    <li>Часть блока, вышедшая за пределы нижнего, отколется.</li>
+                    <li>Башня станет уже, и строить будет сложнее!</li>
+                </ul>
+                <p><strong>⭐ Идеальное Комбо:</strong></p>
+                <ul>
+                    <li>Установите <strong>6 блоков идеально</strong> подряд, чтобы активировать комбо.</li>
+                    <li>Каждое следующее идеальное попадание будет <strong>увеличивать размер</strong> платформы, возвращая ее к первоначальной ширине!</li>
+                </ul>
                 <button id="close-rules-button" class="button">Понятно</button>
             </div>
         </div>
@@ -380,16 +372,15 @@
                     this.color = new THREE.Color(0x333344);
                 } else {
                     const offset = this.index + this.colorOffset;
-                    const r = Math.sin(0.3 * offset) * 55 + 170; // Less white base
-                    const g = Math.sin(0.3 * offset + 2) * 55 + 170;
-                    const b = Math.sin(0.3 * offset + 4) * 55 + 170;
+                    const r = Math.sin(0.3 * offset) * 55 + 200;
+                    const g = Math.sin(0.3 * offset + 2) * 55 + 200;
+                    const b = Math.sin(0.3 * offset + 4) * 55 + 200;
                     this.color = new THREE.Color(r / 255, g / 255, b / 255);
                 }
 
                 this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
-                
-                this.speed = -5 - this.index * 0.1;
-                if (this.speed < -25) this.speed = -25;
+                this.speed = -0.1 - (this.index * 0.005);
+                if (this.speed < -4) this.speed = -4;
                 this.direction = this.speed;
 
                 const geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
@@ -404,7 +395,7 @@
             }
 
             reverseDirection = () => {
-                this.direction *= -1;
+                this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
             }
 
             place() {
@@ -460,11 +451,11 @@
                 return blocksToReturn;
             }
 
-            tick(delta) {
+            tick() {
                 if (this.state === this.STATES.ACTIVE) {
                     const value = this.position[this.workingPlane];
                     if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
-                    this.position[this.workingPlane] += this.direction * delta;
+                    this.position[this.workingPlane] += this.direction;
                     this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
                 }
             }
@@ -475,7 +466,6 @@
                 this.STATES = { MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', ENDED: 'ended', RESETTING: 'resetting' };
                 
                 this.stage = new Stage();
-                this.clock = new THREE.Clock(); // For delta time
                 this.ui = {
                     body: document.body,
                     mainMenu: document.getElementById('main-menu'),
@@ -760,16 +750,12 @@
                 
                 if (newBlocks.chopped) {
                     this.choppedBlocks.add(newBlocks.chopped);
-                    const positionParams = { 
-                        y: '-=30', 
-                        ease: Power1.easeIn, 
-                        onComplete: () => this.choppedBlocks.remove(newBlocks.chopped) 
-                    };
+                    const positionParams = { y: '-=30', ease: Power1.easeIn, onComplete: () => this.choppedBlocks.remove(newBlocks.chopped) };
                     const plane = newBlocks.plane;
                     if (newBlocks.chopped.position[plane] > newBlocks.placed.position[plane]) {
-                        positionParams[plane] = `+=${10 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `+=${40 * Math.abs(newBlocks.direction)}`;
                     } else {
-                        positionParams[plane] = `-=${10 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `-=${40 * Math.abs(newBlocks.direction)}`;
                     }
                     TweenLite.to(newBlocks.chopped.position, 1, positionParams);
                 }
@@ -851,11 +837,13 @@
                 }
             }
             
-            animateStars(delta) {
+            animateStars() {
                 const cameraY = this.stage.camera.position.y;
+                // Move the entire starfield with the camera
                 this.starsGroup.position.y = cameraY;
-                this.starsGroup.rotation.y += 0.03 * delta; // Framerate-independent rotation
+                this.starsGroup.rotation.y += 0.0002;
 
+                // Wrap stars to create an infinite field
                 this.starsGroup.children.forEach(star => {
                     if (star.position.y + cameraY < cameraY - 100) {
                         star.position.y += 200;
@@ -869,13 +857,14 @@
             getPastelColor(color) {
                 const tempColor = color.clone();
                 const white = new THREE.Color(0xffffff);
-                tempColor.lerp(white, 0.85); // Mix with 85% white for a very milky look
+                tempColor.lerp(white, 0.75); // Mix with 75% white for a milkier look
                 return tempColor;
             }
 
             updateBackground() {
-                this.bgColors.top.lerp(this.bgColors.targetTop, 0.02);
-                this.bgColors.bottom.lerp(this.bgColors.targetBottom, 0.02);
+                // Slower lerp for a much smoother transition
+                this.bgColors.top.lerp(this.bgColors.targetTop, 0.005);
+                this.bgColors.bottom.lerp(this.bgColors.targetBottom, 0.005);
                 
                 const topHex = '#' + this.bgColors.top.getHexString();
                 const bottomHex = '#' + this.bgColors.bottom.getHexString();
@@ -901,13 +890,12 @@
             }
 
             tick = () => {
-                const delta = this.clock.getDelta();
-                this.animateStars(delta);
+                this.animateStars();
 
                 if (this.state === this.STATES.PLAYING || this.state === this.STATES.ENDED) {
                     const topBlock = this.blocks[this.blocks.length - 1];
                     if (topBlock && topBlock.state === topBlock.STATES.ACTIVE) {
-                        topBlock.tick(delta);
+                        topBlock.tick();
                     }
                 }
                 this.updateBackground();
