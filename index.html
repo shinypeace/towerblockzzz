@@ -380,16 +380,16 @@
                     this.color = new THREE.Color(0x333344);
                 } else {
                     const offset = this.index + this.colorOffset;
-                    const r = Math.sin(0.3 * offset) * 55 + 180; // Less white base
-                    const g = Math.sin(0.3 * offset + 2) * 55 + 180;
-                    const b = Math.sin(0.3 * offset + 4) * 55 + 180;
+                    const r = Math.sin(0.3 * offset) * 55 + 170; // Less white base
+                    const g = Math.sin(0.3 * offset + 2) * 55 + 170;
+                    const b = Math.sin(0.3 * offset + 4) * 55 + 170;
                     this.color = new THREE.Color(r / 255, g / 255, b / 255);
                 }
 
                 this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
                 
-                // --- Framerate-independent speed ---
-                this.speed = 5; // Base speed in units per second
+                this.speed = -0.1 - this.index * 0.005;
+                if (this.speed < -4) this.speed = -4;
                 this.direction = this.speed;
 
                 const geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
@@ -404,7 +404,7 @@
             }
 
             reverseDirection = () => {
-                this.direction *= -1;
+                this.direction = this.direction > 0 ? this.speed : Math.abs(this.speed);
             }
 
             place() {
@@ -460,13 +460,11 @@
                 return blocksToReturn;
             }
 
-            tick(delta) {
+            tick() {
                 if (this.state === this.STATES.ACTIVE) {
                     const value = this.position[this.workingPlane];
                     if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
-                    
-                    const speedMultiplier = 1 + (this.index * 0.05); // Speed increases with tower height
-                    this.position[this.workingPlane] += this.direction * delta * speedMultiplier;
+                    this.position[this.workingPlane] += this.direction;
                     this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
                 }
             }
@@ -477,7 +475,6 @@
                 this.STATES = { MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', ENDED: 'ended', RESETTING: 'resetting' };
                 
                 this.stage = new Stage();
-                this.clock = new THREE.Clock(); // For delta time
                 this.ui = {
                     body: document.body,
                     mainMenu: document.getElementById('main-menu'),
@@ -762,12 +759,16 @@
                 
                 if (newBlocks.chopped) {
                     this.choppedBlocks.add(newBlocks.chopped);
-                    const positionParams = { y: '-=30', ease: Power1.easeIn, onComplete: () => this.choppedBlocks.remove(newBlocks.chopped) };
+                    const positionParams = { 
+                        y: '-=30', 
+                        ease: Power1.easeIn, 
+                        onComplete: () => this.choppedBlocks.remove(newBlocks.chopped) 
+                    };
                     const plane = newBlocks.plane;
                     if (newBlocks.chopped.position[plane] > newBlocks.placed.position[plane]) {
-                        positionParams[plane] = `+=${40 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `+=${20 * Math.abs(newBlocks.direction)}`;
                     } else {
-                        positionParams[plane] = `-=${40 * Math.abs(newBlocks.direction)}`;
+                        positionParams[plane] = `-=${20 * Math.abs(newBlocks.direction)}`;
                     }
                     TweenLite.to(newBlocks.chopped.position, 1, positionParams);
                 }
@@ -849,10 +850,10 @@
                 }
             }
             
-            animateStars(delta) {
+            animateStars() {
                 const cameraY = this.stage.camera.position.y;
                 this.starsGroup.position.y = cameraY;
-                this.starsGroup.rotation.y += 0.05 * delta; // Framerate-independent rotation
+                this.starsGroup.rotation.y += 0.0002;
 
                 this.starsGroup.children.forEach(star => {
                     if (star.position.y + cameraY < cameraY - 100) {
@@ -899,13 +900,12 @@
             }
 
             tick = () => {
-                const delta = this.clock.getDelta();
-                this.animateStars(delta);
+                this.animateStars();
 
                 if (this.state === this.STATES.PLAYING || this.state === this.STATES.ENDED) {
                     const topBlock = this.blocks[this.blocks.length - 1];
                     if (topBlock && topBlock.state === topBlock.STATES.ACTIVE) {
-                        topBlock.tick(delta);
+                        topBlock.tick();
                     }
                 }
                 this.updateBackground();
