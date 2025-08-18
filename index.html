@@ -379,8 +379,11 @@
                 }
 
                 this.state = this.index > 1 ? this.STATES.ACTIVE : this.STATES.STOPPED;
-                this.speed = -0.1 - (this.index * 0.005);
-                if (this.speed < -4) this.speed = -4;
+                
+                // ИЗМЕНЕНИЕ: Скорость теперь измеряется в единицах в секунду, а не в единицах за кадр.
+                // Это делает движение независимым от частоты кадров.
+                this.speed = -10 - (this.index * 0.1);
+                if (this.speed < -40) this.speed = -40;
                 this.direction = this.speed;
 
                 const geometry = new THREE.BoxGeometry(this.dimension.width, this.dimension.height, this.dimension.depth);
@@ -451,11 +454,15 @@
                 return blocksToReturn;
             }
 
-            tick() {
+            // ИЗМЕНЕНИЕ: Метод tick теперь принимает deltaTime
+            tick(deltaTime) {
                 if (this.state === this.STATES.ACTIVE) {
                     const value = this.position[this.workingPlane];
                     if (value > this.MOVE_AMOUNT || value < -this.MOVE_AMOUNT) this.reverseDirection();
-                    this.position[this.workingPlane] += this.direction;
+                    
+                    // ИЗМЕНЕНИЕ: Смещение блока теперь умножается на deltaTime,
+                    // чтобы скорость была одинаковой на любой герцовке.
+                    this.position[this.workingPlane] += this.direction * deltaTime;
                     this.mesh.position[this.workingPlane] = this.position[this.workingPlane];
                 }
             }
@@ -465,6 +472,9 @@
             constructor() {
                 this.STATES = { MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', ENDED: 'ended', RESETTING: 'resetting' };
                 
+                // ИЗМЕНЕНИЕ: Добавляем часы для отслеживания времени между кадрами
+                this.clock = new THREE.Clock();
+
                 this.stage = new Stage();
                 this.ui = {
                     body: document.body,
@@ -857,7 +867,9 @@
             getPastelColor(color) {
                 const tempColor = color.clone();
                 const white = new THREE.Color(0xffffff);
-                tempColor.lerp(white, 0.75); // Mix with 75% white for a milkier look
+                // ИЗМЕНЕНИЕ: Уменьшил значение с 0.75 до 0.6,
+                // чтобы цвет был менее белым, но все еще пастельным.
+                tempColor.lerp(white, 0.6);
                 return tempColor;
             }
 
@@ -890,12 +902,16 @@
             }
 
             tick = () => {
+                // ИЗМЕНЕНИЕ: Получаем время, прошедшее с последнего кадра (deltaTime)
+                const deltaTime = this.clock.getDelta();
+                
                 this.animateStars();
 
                 if (this.state === this.STATES.PLAYING || this.state === this.STATES.ENDED) {
                     const topBlock = this.blocks[this.blocks.length - 1];
                     if (topBlock && topBlock.state === topBlock.STATES.ACTIVE) {
-                        topBlock.tick();
+                        // ИЗМЕНЕНИЕ: Передаем deltaTime в метод обновления блока
+                        topBlock.tick(deltaTime);
                     }
                 }
                 this.updateBackground();
