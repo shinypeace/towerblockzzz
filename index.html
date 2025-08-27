@@ -82,19 +82,6 @@
             align-items: center;
             gap: 1em;
         }
-        #main-menu > div {
-            padding-bottom: env(safe-area-inset-bottom, 0); /* Safe area for banner */
-            box-sizing: border-box;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .main-content {
-            padding-top: 20px;
-        }
         #main-menu p {
             font-size: 1.1rem;
             color: #bbdefb;
@@ -114,35 +101,11 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             width: 220px;
-            box-sizing: border-box;
         }
         .button:hover {
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.15);
         }
-        .button-with-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            gap: 12px;
-        }
-        .button-with-icon img {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 2px solid var(--text-color-light);
-        }
-        .promo-button {
-            margin-top: auto;
-            margin-bottom: 90px; /* Space for banner */
-            padding: 12px 30px;
-        }
-        .promo-button span {
-            line-height: 1.2;
-            font-size: 1.1rem;
-        }
-
 
         /* --- In-Game UI --- */
         #in-game-ui {
@@ -265,22 +228,15 @@
 
         <div id="main-menu" class="ui-layer">
             <div>
-                <div class="main-content">
-                    <div class="title">
-                        <span class="title-line-1">TOWER</span>
-                        <span class="title-line-2">BLOCKS</span>
-                    </div>
-                    <div class="button-group">
-                        <button id="start-button" class="button">Играть</button>
-                        <button id="rules-button" class="button">Правила</button>
-                    </div>
-                    <p>Рекорд: <span id="high-score">0</span></p>
+                <div class="title">
+                    <span class="title-line-1">TOWER</span>
+                    <span class="title-line-2">BLOCKS</span>
                 </div>
-                
-                <a href="https://vk.com/app51855051" class="button button-with-icon promo-button">
-                    <img src="icon.png" alt="Bubble Shooter Icon" onerror="this.onerror=null;this.src='https://placehold.co/64x64/0d47a1/ffffff?text=B';">
-                    <span>Bubble<br>Shooter</span>
-                </a>
+                <div class="button-group">
+                    <button id="start-button" class="button">Играть</button>
+                    <button id="rules-button" class="button">Правила</button>
+                </div>
+                <p>Рекорд: <span id="high-score">0</span></p>
             </div>
         </div>
         
