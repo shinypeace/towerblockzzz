@@ -354,7 +354,6 @@
                     <button class="menu-button" data-mode="hard">Хард-режим</button>
                     <button id="rules-btn" class="menu-button secondary">Правила</button>
                     <button id="stats-btn" class="menu-button secondary">Статистика</button>
-                    <!-- ИЗМЕНЕНИЕ: Путь к иконке изменен на локальный -->
                     <button id="tower-blocks-btn" class="menu-button secondary">
                         <img src="icon.png" alt="Tower Blocks Icon">
                         <span>Tower Blocks</span>
@@ -522,8 +521,15 @@
         let gridRowOffset = 0;
         let loseY;
 
+        // --- ИЗМЕНЕНИЕ: Настройка Web Audio API ---
+        let audioContext;
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (e) {
+            console.error("Web Audio API is not supported in this browser");
+        }
+
         const sounds = {
-            hit: new Audio("hit.mp3"),
             backgroundMusic: new Audio("music.mp3")
         };
         sounds.backgroundMusic.loop = true;
@@ -539,11 +545,25 @@
             };
         }
         
-        function playSound(sound) { 
-            if (soundEnabled) { 
-                sound.currentTime = 0; 
-                sound.play().catch(e => {}); 
-            } 
+        // --- ИЗМЕНЕНИЕ: Функция для генерации звука столкновения ---
+        function playHitSound() {
+            if (!soundEnabled || !audioContext || audioContext.state === 'suspended') return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'triangle';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
+            oscillator.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.1);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
         }
 
         function showScreen(screenId) {
@@ -772,7 +792,8 @@
             const p = projectile;
             projectile = null;
             
-            playSound(sounds.hit);
+            // --- ИЗМЕНЕНИЕ: Воспроизведение нового звука ---
+            playHitSound();
             
             const snapPos = findNearestEmptySlot(p.x, p.y);
 
@@ -1270,9 +1291,7 @@
                 soundOnIcon.classList.toggle('hidden', !soundEnabled);
                 soundOffIcon.classList.toggle('hidden', soundEnabled);
                 
-                Object.values(sounds).forEach(sound => {
-                    sound.muted = !soundEnabled;
-                });
+                sounds.backgroundMusic.muted = !soundEnabled;
 
                 if (soundEnabled && !isPaused && !isGameOver) {
                     sounds.backgroundMusic.play().catch(e => {});
@@ -1281,11 +1300,21 @@
                 }
             });
             
-            document.body.addEventListener('click', () => {
+            // --- ИЗМЕНЕНИЕ: Активация AudioContext при первом взаимодействии ---
+            function resumeAudioContext() {
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
                 if (soundEnabled && sounds.backgroundMusic.paused && !isPaused && !isGameOver) {
                     sounds.backgroundMusic.play().catch(e => {});
                 }
-            }, { once: true });
+                document.body.removeEventListener('click', resumeAudioContext);
+                document.body.removeEventListener('touchend', resumeAudioContext);
+            }
+
+            document.body.addEventListener('click', resumeAudioContext);
+            document.body.addEventListener('touchend', resumeAudioContext);
+
 
             window.addEventListener('resize', debounce(setGameSize, 250));
             
